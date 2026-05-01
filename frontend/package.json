@@ -8,10 +8,18 @@
     "start": "next start -p 3001"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "admin-lte": "^4.0.0-rc7",
+    "autoprefixer": "^10.5.0",
     "axios": "^1.6.0",
+    "bootstrap": "^5.3.8",
+    "lucide-react": "^1.14.0",
     "next": "14.2.0",
+    "postcss": "^8.5.13",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "socket.io-client": "^4.7.2"
+    "recharts": "^3.8.1",
+    "socket.io-client": "^4.7.2",
+    "tailwindcss": "^4.2.4"
   }
 }

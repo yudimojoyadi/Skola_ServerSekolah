@@ -1,13 +1,15 @@
 const db = require('../../config/db');
 
 exports.summary = async (req, res) => {
-  const result = await db.query(`
-    SELECT id, name, type,
-    CASE WHEN last_heartbeat > NOW() - INTERVAL '30 sec'
-      THEN 'online' ELSE 'offline' END status,
-    last_heartbeat
-    FROM nodes
-  `);
+  const nodes = await db.node.findMany();
 
-  res.json(result.rows);
+  const result = nodes.map(node => ({
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    status: node.lastHeartbeat && new Date(node.lastHeartbeat) > new Date(Date.now() - 30000) ? 'online' : 'offline',
+    last_heartbeat: node.lastHeartbeat
+  }));
+
+  res.json(result);
 };

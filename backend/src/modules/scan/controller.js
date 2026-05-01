@@ -13,25 +13,23 @@ exports.scan = async (req, res) => {
     }
 
     // ✅ VALIDASI SISWA
-    const studentRes = await db.query(
-      `SELECT * FROM students WHERE qr_code=$1`,
-      [qr_code]
-    );
+    const siswa = await db.student.findUnique({
+      where: { qrCode: qr_code }
+    });
 
-    if (!studentRes.rows.length) {
+    if (!siswa) {
       return res.status(404).json({ message: 'QR tidak ditemukan' });
     }
 
-    const siswa = studentRes.rows[0];
-
     // ✅ ANTI DOUBLE SCAN (10 detik)
-    const recent = await db.query(`
-      SELECT * FROM node_logs
-      WHERE qr_code=$1
-      AND created_at > NOW() - INTERVAL '10 seconds'
-    `, [qr_code]);
+    const recent = await db.nodeLog.findFirst({
+      where: {
+        qrCode: qr_code,
+        createdAt: { gt: new Date(Date.now() - 10000) }
+      }
+    });
 
-    if (recent.rows.length) {
+    if (recent) {
       return res.json({ message: 'Duplicate scan ignored' });
     }
 
@@ -42,18 +40,20 @@ exports.scan = async (req, res) => {
     const audioUrl = await tts.generate(text, filename);
 
     // ✅ INSERT LOG
-    await db.query(`
-      INSERT INTO node_logs(node_id, qr_code, status)
-      VALUES ($1,$2,$3)
-    `, [node_id, qr_code, 'PROCESS']);
+    await db.nodeLog.create({
+      data: {
+        nodeId: node_id,
+        qrCode: qr_code,
+        status: 'PROCESS'
+      }
+    });
 
     // ✅ PILIH GROUP SPEAKER
-    const group = await db.query(
-      `SELECT group_name FROM speaker_groups WHERE kelas=$1`,
-      [siswa.kelas]
-    );
+    const group = await db.speakerGroup.findFirst({
+      where: { kelas: siswa.kelas }
+    });
 
-    const topic = `speaker/${group.rows[0].group_name}`;
+    const topic = `speaker/${group.groupName}`;
 
     // ✅ MQTT PUBLISH
     mqtt.publish(topic, JSON.stringify({

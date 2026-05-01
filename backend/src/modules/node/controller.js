@@ -4,10 +4,10 @@ const io = require('../../realtime/socket');
 exports.heartbeat = async (req, res) => {
   const { node_id } = req.body;
 
-  await db.query(
-    `UPDATE nodes SET last_heartbeat=NOW() WHERE id=$1`,
-    [node_id]
-  );
+  await db.node.update({
+    where: { id: node_id },
+    data: { lastHeartbeat: new Date() }
+  });
 
   io.get().emit('node:heartbeat', { node_id });
 
@@ -17,13 +17,12 @@ exports.heartbeat = async (req, res) => {
 exports.feedback = async (req, res) => {
   const { qr_code, node_id, status } = req.body;
 
-  await db.query(`
-    UPDATE node_logs
-    SET status=$1
-    WHERE qr_code=$2
-    ORDER BY created_at DESC
-    LIMIT 1
-  `, [status, qr_code]);
+  await db.nodeLog.updateMany({
+    where: { qrCode: qr_code },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+    data: { status }
+  });
 
   const io = require('../../realtime/socket');
 
