@@ -7,7 +7,13 @@ export default function Students() {
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      return saved === 'true';
+    }
+    return false;
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,16 +35,10 @@ export default function Students() {
   useEffect(() => {
     fetchStudents();
     fetchRooms();
-    
-    // Check for saved dark mode preference
-    const saved = localStorage.getItem('darkMode');
-    if (saved !== null) {
-      setDarkMode(saved === 'true');
-    }
   }, []);
 
   useEffect(() => {
-    // Apply dark mode class to body
+    // Apply dark mode class to body immediately on mount
     if (darkMode) {
       document.body.classList.add('dark-mode');
     } else {
@@ -314,10 +314,17 @@ export default function Students() {
                   <p>Group Speakers</p>
                 </Link>
               </li>
+              <li className="nav-header">Administrator</li>
               <li className="nav-item">
                 <Link href="/settings" className="nav-link">
                   <i className="nav-icon fas fa-cog"></i>
                   <p>Settings</p>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/scan-logs" className="nav-link">
+                  <i className="nav-icon fas fa-qrcode"></i>
+                  <p>Scan Logs</p>
                 </Link>
               </li>
             </ul>

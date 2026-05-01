@@ -7,7 +7,13 @@ export default function Nodes() {
   const [nodes, setNodes] = useState([]);
   const [filteredNodes, setFilteredNodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      return saved === 'true';
+    }
+    return false;
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,12 +30,6 @@ export default function Nodes() {
 
   useEffect(() => {
     fetchNodes();
-    
-    // Check for saved dark mode preference
-    const saved = localStorage.getItem('darkMode');
-    if (saved !== null) {
-      setDarkMode(saved === 'true');
-    }
   }, []);
 
   useEffect(() => {
@@ -276,10 +276,17 @@ export default function Nodes() {
                   <p>Group Speakers</p>
                 </Link>
               </li>
+              <li className="nav-header">Administrator</li>
               <li className="nav-item">
                 <Link href="/settings" className="nav-link">
                   <i className="nav-icon fas fa-cog"></i>
                   <p>Settings</p>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/scan-logs" className="nav-link">
+                  <i className="nav-icon fas fa-qrcode"></i>
+                  <p>Scan Logs</p>
                 </Link>
               </li>
             </ul>

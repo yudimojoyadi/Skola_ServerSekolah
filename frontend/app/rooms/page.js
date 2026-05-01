@@ -7,7 +7,13 @@ export default function Rooms() {
   const [rooms, setRooms] = useState([]);
   const [filteredRooms, setFilteredRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      return saved === 'true';
+    }
+    return false;
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -217,6 +223,11 @@ export default function Rooms() {
               <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
             </a>
           </li>
+          <li className="nav-item">
+            <Link href="/login" className="nav-link">
+              <i className="fas fa-sign-out-alt"></i> Logout
+            </Link>
+          </li>
         </ul>
       </nav>
 
@@ -258,10 +269,17 @@ export default function Rooms() {
                   <p>Group Speakers</p>
                 </Link>
               </li>
+              <li className="nav-header">Administrator</li>
               <li className="nav-item">
                 <Link href="/settings" className="nav-link">
                   <i className="nav-icon fas fa-cog"></i>
                   <p>Settings</p>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/scan-logs" className="nav-link">
+                  <i className="nav-icon fas fa-qrcode"></i>
+                  <p>Scan Logs</p>
                 </Link>
               </li>
             </ul>
@@ -270,15 +288,21 @@ export default function Rooms() {
       </aside>
 
       <div className="content-wrapper">
-        <section className="content-header">
+        <div className="content-header">
           <div className="container-fluid">
             <div className="row mb-2">
               <div className="col-sm-6">
-                <h1>Rooms</h1>
+                <h1 className="m-0">Rooms</h1>
+              </div>
+              <div className="col-sm-6">
+                <ol className="breadcrumb float-sm-right">
+                  <li className="breadcrumb-item"><Link href="/dashboard">Home</Link></li>
+                  <li className="breadcrumb-item active">Rooms</li>
+                </ol>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
         <section className="content">
           <div className="container-fluid">

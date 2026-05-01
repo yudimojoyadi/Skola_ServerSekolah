@@ -4,18 +4,25 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export default function Dashboard() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      return saved === 'true';
+    }
+    return false;
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [studentCount, setStudentCount] = useState(0);
   const [nodeCount, setNodeCount] = useState(0);
 
   useEffect(() => {
-    // Check for saved preference
-    const saved = localStorage.getItem('darkMode');
-    if (saved !== null) {
-      setDarkMode(saved === 'true');
+    // Apply dark mode class to body immediately on mount
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
     }
-  }, []);
+  }, [darkMode]);
 
   useEffect(() => {
     // Fetch student count
@@ -148,10 +155,17 @@ export default function Dashboard() {
                   <p>Group Speakers</p>
                 </Link>
               </li>
+              <li className="nav-header">Administrator</li>
               <li className="nav-item">
                 <Link href="/settings" className="nav-link">
                   <i className="nav-icon fas fa-cog"></i>
                   <p>Settings</p>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/scan-logs" className="nav-link">
+                  <i className="nav-icon fas fa-qrcode"></i>
+                  <p>Scan Logs</p>
                 </Link>
               </li>
             </ul>

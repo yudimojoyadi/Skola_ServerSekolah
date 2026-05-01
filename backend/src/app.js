@@ -16,6 +16,7 @@ app.use('/students', require('./modules/student/routes'));
 app.use('/audio', require('./modules/audio/routes'));
 app.use('/room', require('./modules/room/routes'));
 app.use('/group-speaker', require('./modules/groupSpeaker/routes'));
+app.use('/scan-logs', require('./modules/scanLog/routes'));
 app.use(express.static(path.join(__dirname, '../public')));
 
 module.exports = app;
