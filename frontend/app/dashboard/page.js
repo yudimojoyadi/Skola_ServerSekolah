@@ -137,6 +137,18 @@ export default function Dashboard() {
                 </Link>
               </li>
               <li className="nav-item">
+                <Link href="/rooms" className="nav-link">
+                  <i className="nav-icon fas fa-door-open"></i>
+                  <p>Rooms</p>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/group-speakers" className="nav-link">
+                  <i className="nav-icon fas fa-users-cog"></i>
+                  <p>Group Speakers</p>
+                </Link>
+              </li>
+              <li className="nav-item">
                 <Link href="/settings" className="nav-link">
                   <i className="nav-icon fas fa-cog"></i>
                   <p>Settings</p>

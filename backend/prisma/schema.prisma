@@ -11,25 +11,47 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int            @id @default(autoincrement())
+  email     String         @unique
   password  String
   role      String
+  rooms     Room[]
+  groupSpeakers GroupSpeaker[]
 }
 
 model Student {
-  id       Int      @id @default(autoincrement())
-  nama     String
-  kelas    String
-  qrCode   String   @unique
+  id         Int          @id @default(autoincrement())
+  nama       String
+  kelas      String
+  qrCode     String       @unique
+  roomId     Int
+  room       Room         @relation(fields: [roomId], references: [id])
+  audioFiles AudioFile[]
+  scanLogs   ScanLog[]
+  nodeLogs   NodeLog[]
+}
+
+model AudioFile {
+  id         String   @id @default(uuid())
+  studentId  Int      @unique
+  filePath   String?
+  url        String?
+  textSource String?
+  createdAt  DateTime @default(now())
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model Node {
-  id            String   @id @default(uuid())
+  id            Int       @id @default(autoincrement())
   name          String
   type          String
+  ipAddress     String    @unique
+  createdAt     DateTime  @default(now())
+  isEnable      Boolean   @default(true)
   lastHeartbeat DateTime?
   nodeLogs      NodeLog[]
+  scanLogs      ScanLog[]
+  groupSpeakers GroupSpeaker[]
 }
 
 model SpeakerGroup {
@@ -40,9 +62,48 @@ model SpeakerGroup {
 
 model NodeLog {
   id        Int      @id @default(autoincrement())
-  nodeId    String
+  nodeId    Int
+  studentId Int?
   qrCode    String
   status    String
+  message   String?
   createdAt DateTime @default(now())
   node      Node     @relation(fields: [nodeId], references: [id])
+  student   Student? @relation(fields: [studentId], references: [id])
+}
+
+model ScanLog {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  qrCode    String
+  nodeId    Int?
+  status    String
+  source    String
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id])
+  node      Node?    @relation(fields: [nodeId], references: [id])
+}
+
+model Room {
+  id            Int        @id @default(autoincrement())
+  name          String
+  createdAt     DateTime   @default(now())
+  createdBy     Int?
+  user          User?      @relation(fields: [createdBy], references: [id])
+  groupSpeakers GroupSpeaker[]
+  students      Student[]
+}
+
+model GroupSpeaker {
+  id        Int      @id @default(autoincrement())
+  name      String
+  nodeId    Int
+  roomId    Int
+  createdBy Int?
+  createdAt DateTime @default(now())
+  node      Node     @relation(fields: [nodeId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id])
+  user      User?    @relation(fields: [createdBy], references: [id])
+
+  @@unique([nodeId, roomId])
 }

@@ -42,7 +42,7 @@ exports.scan = async (req, res) => {
     // ✅ INSERT LOG
     await db.nodeLog.create({
       data: {
-        nodeId: node_id,
+        nodeId: parseInt(node_id),
         qrCode: qr_code,
         status: 'PROCESS'
       }

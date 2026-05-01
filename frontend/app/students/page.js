@@ -14,9 +14,21 @@ export default function Students() {
   const [itemsPerPage] = useState(10);
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedQrCode, setSelectedQrCode] = useState('');
+  const [audioModalOpen, setAudioModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [audioText, setAudioText] = useState('');
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingStudentId, setEditingStudentId] = useState(null);
+  const [newStudent, setNewStudent] = useState({ nama: '', kelas: '', roomId: '' });
+  const [studentError, setStudentError] = useState('');
+  const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
     fetchStudents();
+    fetchRooms();
     
     // Check for saved dark mode preference
     const saved = localStorage.getItem('darkMode');
@@ -90,6 +102,24 @@ export default function Students() {
     }
   };
 
+  const fetchRooms = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching rooms with token:', token);
+      const res = await fetch('http://localhost:3000/room', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('Rooms response status:', res.status);
+      const data = await res.json();
+      console.log('Rooms data:', data);
+      setRooms(data);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    }
+  };
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredStudents.slice(indexOfFirstItem, indexOfLastItem);
@@ -102,11 +132,117 @@ export default function Students() {
       setDropdownOpen(null);
     } else {
       const rect = event.target.getBoundingClientRect();
+      const dropdownWidth = 160;
+      const screenWidth = window.innerWidth;
+      
+      // Calculate position, adjust if dropdown would go off right edge
+      let left = rect.left + window.scrollX;
+      if (left + dropdownWidth > screenWidth) {
+        left = screenWidth - dropdownWidth - 20; // 20px padding from right edge
+      }
+      
       setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX
+        top: rect.bottom + window.scrollY + 5,
+        left: left
       });
       setDropdownOpen(studentId);
+    }
+  };
+
+  const openQrModal = (qrCode) => {
+    setSelectedQrCode(qrCode);
+    setQrModalOpen(true);
+  };
+
+  const closeQrModal = () => {
+    setQrModalOpen(false);
+    setSelectedQrCode('');
+  };
+
+  const handleGenerateAudio = (student) => {
+    setSelectedStudent(student);
+    setAudioText('');
+    setAudioModalOpen(true);
+  };
+
+  const handleAddStudent = () => {
+    setIsEditMode(false);
+    setNewStudent({ nama: '', kelas: '', roomId: '' });
+    setStudentError('');
+    console.log('Opening add student modal, rooms:', rooms);
+    setStudentModalOpen(true);
+  };
+
+  const handleEditStudent = (student) => {
+    setIsEditMode(true);
+    setEditingStudentId(student.id);
+    setNewStudent({
+      nama: student.nama,
+      kelas: student.kelas,
+      roomId: student.roomId || ''
+    });
+    setStudentError('');
+    setStudentModalOpen(true);
+    setDropdownOpen(null);
+  };
+
+  const handleDeleteStudent = (student) => {
+    if (window.confirm(`Are you sure you want to delete ${student.nama}?`)) {
+      handleDeleteConfirm(student);
+    }
+  };
+
+  const handleDeleteConfirm = async (student) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:3000/students/${student.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        setDropdownOpen(null);
+        fetchStudents();
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+    }
+  };
+
+  const handleCreateStudent = async () => {
+    if (!newStudent.nama || !newStudent.kelas || !newStudent.roomId) {
+      setStudentError('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const url = isEditMode 
+        ? `http://localhost:3000/students/${editingStudentId}`
+        : 'http://localhost:3000/students';
+      
+      const res = await fetch(url, {
+        method: isEditMode ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newStudent)
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setStudentError(data.error || 'Error saving student. Please try again.');
+        return;
+      }
+      
+      setStudentModalOpen(false);
+      setStudentError('');
+      fetchStudents();
+    } catch (error) {
+      console.error('Error saving student:', error);
+      setStudentError('Error saving student. Please try again.');
     }
   };
 
@@ -167,6 +303,18 @@ export default function Students() {
                 </Link>
               </li>
               <li className="nav-item">
+                <Link href="/rooms" className="nav-link">
+                  <i className="nav-icon fas fa-door-open"></i>
+                  <p>Rooms</p>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/group-speakers" className="nav-link">
+                  <i className="nav-icon fas fa-users-cog"></i>
+                  <p>Group Speakers</p>
+                </Link>
+              </li>
+              <li className="nav-item">
                 <Link href="/settings" className="nav-link">
                   <i className="nav-icon fas fa-cog"></i>
                   <p>Settings</p>
@@ -204,7 +352,7 @@ export default function Students() {
                 <div className="card card-primary card-outline">
                   <div className="card-header">
                     <h3 className="card-title">Student List</h3>
-                    <div className="card-tools">
+                    <div className="card-tools" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                       <div className="input-group input-group-sm" style={{ width: '250px' }}>
                         <input
                           type="text"
@@ -219,6 +367,12 @@ export default function Students() {
                           </button>
                         </div>
                       </div>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={handleAddStudent}
+                      >
+                        <i className="fas fa-plus mr-1"></i> Add Student
+                      </button>
                     </div>
                   </div>
                   <div className="card-body p-0">
@@ -237,13 +391,14 @@ export default function Students() {
                               <th>Name</th>
                               <th>Class</th>
                               <th>QR Code</th>
+                              <th>Audio</th>
                               <th style={{ width: '100px' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {filteredStudents.length === 0 ? (
                               <tr>
-                                <td colSpan="5" className="text-center py-4">
+                                <td colSpan="6" className="text-center py-4">
                                   <i className="fas fa-search fa-2x text-gray-400 mb-2"></i>
                                   <p className="text-gray-500">No students found</p>
                                 </td>
@@ -252,14 +407,37 @@ export default function Students() {
                               currentItems.map((student, index) => (
                                 <tr key={student.id}>
                                   <td>{indexOfFirstItem + index + 1}</td>
+                                  <td>{student.nama}</td>
+                                  <td>{student.kelas}</td>
                                   <td>
-                                    <span className="badge badge-info">{student.nama}</span>
+                                    <a 
+                                      href="#" 
+                                      onClick={(e) => { e.preventDefault(); openQrModal(student.qrCode); }}
+                                      style={{ color: '#007bff', textDecoration: 'none' }}
+                                    >
+                                      Show
+                                    </a>
                                   </td>
                                   <td>
-                                    <span className="badge badge-success">{student.kelas}</span>
-                                  </td>
-                                  <td>
-                                    <code className="bg-light px-2 py-1 rounded">{student.qrCode}</code>
+                                    {student.audioFiles && student.audioFiles.length > 0 ? (
+                                      <button 
+                                        className="btn btn-sm btn-success"
+                                        onClick={() => {
+                                          const audioUrl = student.audioFiles[0].url;
+                                          const audio = new Audio(audioUrl);
+                                          audio.play();
+                                        }}
+                                      >
+                                        <i className="fas fa-play"></i> Play
+                                      </button>
+                                    ) : (
+                                      <button 
+                                        className="btn btn-sm btn-secondary"
+                                        disabled
+                                      >
+                                        <i className="fas fa-volume-mute"></i> No Audio
+                                      </button>
+                                    )}
                                   </td>
                                   <td>
                                     <div className="dropdown">
@@ -281,14 +459,14 @@ export default function Students() {
                                             minWidth: '160px'
                                           }}
                                         >
-                                          <a className="dropdown-item" href="#">
-                                            <i className="fas fa-eye mr-2"></i> View
-                                          </a>
-                                          <a className="dropdown-item" href="#">
+                                          <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleEditStudent(student); }}>
                                             <i className="fas fa-edit mr-2"></i> Edit
                                           </a>
+                                          <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleGenerateAudio(student); }}>
+                                            <i className="fas fa-microphone mr-2"></i> Generate Audio
+                                          </a>
                                           <div className="dropdown-divider"></div>
-                                          <a className="dropdown-item text-danger" href="#">
+                                          <a className="dropdown-item text-danger" href="#" onClick={(e) => { e.preventDefault(); handleDeleteStudent(student); }}>
                                             <i className="fas fa-trash mr-2"></i> Delete
                                           </a>
                                         </div>
@@ -341,6 +519,201 @@ export default function Students() {
         </div>
         <strong>Copyright &copy; 2024 School Dashboard.</strong> All rights reserved.
       </footer>
+
+      {/* QR Code Modal */}
+      {qrModalOpen && (
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">QR Code</h5>
+                <button type="button" className="close" onClick={closeQrModal}>
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body text-center">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selectedQrCode)}`}
+                  alt="QR Code"
+                  style={{ maxWidth: '100%' }}
+                />
+                <p className="mt-3 mb-0">
+                  <strong>{selectedQrCode}</strong>
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selectedQrCode)}`;
+                    link.download = `${selectedQrCode}-qrcode.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  <i className="fas fa-download mr-1"></i> Download
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={closeQrModal}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audio Generation Modal */}
+      {audioModalOpen && selectedStudent && (
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Generate Audio for {selectedStudent.nama}</h5>
+                <button type="button" className="close" onClick={() => setAudioModalOpen(false)}>
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label htmlFor="audioText">Text to Speech:</label>
+                  <textarea 
+                    className="form-control" 
+                    id="audioText" 
+                    rows="4"
+                    value={audioText}
+                    onChange={(e) => setAudioText(e.target.value)}
+                    placeholder="Enter text to convert to audio..."
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setAudioModalOpen(false)}>
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    if (!audioText.trim()) return;
+                    try {
+                      const token = localStorage.getItem('token');
+                      const res = await fetch('http://localhost:3000/audio/generate', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          studentId: selectedStudent.id,
+                          textSource: audioText
+                        })
+                      });
+                      const data = await res.json();
+                      setAudioModalOpen(false);
+                      setAudioText('');
+                      setDropdownOpen(null);
+                      fetchStudents();
+                    } catch (error) {
+                      console.error('Error generating audio:', error);
+                    }
+                  }}
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Add/Edit Modal */}
+      {studentModalOpen && (
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">{isEditMode ? 'Edit Student' : 'Add New Student'}</h5>
+                <button type="button" className="close" onClick={() => setStudentModalOpen(false)}>
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label htmlFor="studentName">Name <span className="text-danger">*</span>:</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="studentName"
+                    value={newStudent.nama}
+                    onChange={(e) => {
+                      setNewStudent({ ...newStudent, nama: e.target.value });
+                      setStudentError('');
+                    }}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="studentClass">Class <span className="text-danger">*</span>:</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="studentClass"
+                    value={newStudent.kelas}
+                    onChange={(e) => {
+                      setNewStudent({ ...newStudent, kelas: e.target.value });
+                      setStudentError('');
+                    }}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="studentRoom">Room <span className="text-danger">*</span>:</label>
+                  <select
+                    className="form-control"
+                    id="studentRoom"
+                    value={newStudent.roomId}
+                    onChange={(e) => {
+                      setNewStudent({ ...newStudent, roomId: e.target.value });
+                      setStudentError('');
+                    }}
+                    required
+                  >
+                    <option value="">Select Room</option>
+                    {rooms && rooms.length > 0 ? (
+                      rooms.map((room) => (
+                        <option key={room.id} value={room.id}>
+                          {room.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No rooms available</option>
+                    )}
+                  </select>
+                  {(!rooms || rooms.length === 0) && (
+                    <small className="text-muted">No rooms available. Please add rooms first.</small>
+                  )}
+                </div>
+                {studentError && (
+                  <div className="alert alert-danger" role="alert">
+                    {studentError}
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setStudentModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleCreateStudent}>
+                  {isEditMode ? 'Update Student' : 'Add Student'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
