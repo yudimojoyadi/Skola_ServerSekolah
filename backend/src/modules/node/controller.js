@@ -1,6 +1,16 @@
 const db = require('../../config/db');
 const io = require('../../realtime/socket');
 
+exports.getAllNodes = async (req, res) => {
+  try {
+    const nodes = await db.node.findMany();
+    res.json(nodes);
+  } catch (error) {
+    console.error('Error fetching nodes:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 exports.heartbeat = async (req, res) => {
   const { node_id } = req.body;
 
