@@ -1,4 +1,4 @@
-CREATE TABLE students (
+CREATE TABLE IF NOT EXISTS students (
   id SERIAL PRIMARY KEY,
   nama TEXT,
   kelas TEXT,

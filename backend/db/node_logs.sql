@@ -1,4 +1,4 @@
-CREATE TABLE node_logs (
+CREATE TABLE IF NOT EXISTS node_logs (
   id SERIAL PRIMARY KEY,
   node_id UUID,
   qr_code TEXT,
